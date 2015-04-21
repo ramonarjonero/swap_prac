@@ -1,0 +1,16 @@
+Preguntas Tema 1:
+1. Cuando montamos una granja web, ¿qué características tenemos?
+a) Son sistemas muy complejos pero sumamente flexibles y
+funcionales
+b) No es escalable.
+c) Es escalable pero tiene muy baja disponibilidad.
+d) Ninguna de las anteriores.
+CORRECTA: A.
+
+
+2. ¿Qué es menos importante cuando planificamos un sitio web?
+a) Escalabilidad
+b) Complejidad
+c) Disponibilidad
+d) Flexibilidad
+CORRECTA: b.
