@@ -1,0 +1,17 @@
+Para empezar comprobamos que tenemos la herramienta rsync instalada en las máquinas. Ahora iniciamos la cuenta de super usuario en ambas máquinas y probamos a hacer
+una copia con el comando rsync de la carpeta /var/www/ de nuestra máquina principal en nuestra máquina de respaldo.[IMAGEN rsync] 
+Y comprobamos el resultado de la copia.[IMAGEN COPIA]
+
+Ahora para poder hacer estas tareas sin necesidad de estar indicando la clave de S1 vamos a usar una opción de ssh, ssh-keygen. Para ello en nuestro servidor de
+respaldo usamos la siguiente orden: ssh-keygen -t dsa, nos pedirá un nombre de archivo y una passpharse que dejaremos en blanco.  Ahora necesitamos copiar la clave pública
+en nuestra máquina principal S1, para ello lo haremos con otro comando de ssh, ssh-copy-id, para ello en nuestra máquina S2 ejecutamos ssh-copy-id -i /root/.ssh/id_dsa.pub root@172.19.0.10
+
+Ahora nos conectamos mediante ssh y comprobamos que efectivamente no necesitamos una contraseña para un acceso remoto.[IMAGEN ssh conectados]
+
+A continuación programaremos tareas de copia de datos con cron.
+
+Abrimos con nuestro editor de texto plano el archivo crontab: nano /etc/crontab
+
+Ahora añadimos una orden más para que se copien archivos cada hora, para ello añadimos la siguiente sentencia:
+
+20 *   * * * root rsync -avz --delete -e ssh 172.19.0.10:/var/www/ /var/www/

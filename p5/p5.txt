@@ -1,0 +1,116 @@
+#Práctica 5: Replicación de bases de datos MySQL
+
+##Introducción
+
+Para comenzar con esta práctica hagamos un breve repaso sobre como funciona MySQL.(Debería de estar instalado en el sistema al hacer la instalación de las máquinas virtuales, sino lo instalamos)
+En primer lugar ejecutamos la siguiente orden para entrar en MySQL:
+	mysql -uroot -p
+Nos pedirá una contraseña y proporcionamos la de superusuario establecida en el sistema. En caso de no saber algún comando o alguna orden de MySQL simplemente tecleamos el comando "help".
+
+[IMAGEN HELP_MYSQL]
+
+A continuación crearemos una base de datos y le insertaremos algunos datos. En este caso usaremos el ejemplo dado en el guión de prácticas.
+
+En primer lugar, y ya dentro del editor de MySQl, para crear una base de datos usaremos el comando create database seguido del nombre que le queramos dar. En nuestro ejemplo:
+
+[IMAGEN CREATE_BD]
+
+Una vez que hemos creado la base de datos, accederemos a ella con el comando use:
+
+	use contactos;
+
+Nos saldra la línea de confirmación:
+	Database changed
+
+Ahora como en toda base de datos, crearemos una tabla y le insertaremos algunos datos. Para ello usaremos el comando create table, para crear la tabla y el insert para introducir datos. Más concretamente:
+	create table datos(nombre varchar(100), tlf int);
+	insert into datos(nombre,tlf) values ("pepe", 958349875);
+
+Si queremos comprobar los datos insertados, realizamos un select sobre toda la tabla "datos". En la siguiente imagen se resume todo lo hecho:
+
+[IMAGEN CREATE TABLE]
+
+##Replicar una base de datos: Mysqldump
+Como ya vimos en anteriores prácticas, una manera fácil e intuitiva para hacer una copia de una base de datos es crear un tar.gz y mediante ssh hacer la transfencia de datos. Sin embargo como sabemos, ese proceso puede llegar a ser una tarea algo tediosa y muy poco útil cuando se trata de infomación de gran tamaño o que cambia constantemente. Para ello, el propio MySQL ofrece una alternativa integrada en él, "mysqldump".
+
+La sintaxis de uso es:
+
+	mysqldump ejemplodb -u root -p > /root/ejemplodb.sql
+
+Pero antes de poder ejecutar la orden anterior, tenemos que asegurarnos que no se va a cambiar nada en la base de datos. Para ello bloquearemos las tablas con el comando Flush:
+
+	FLUSH TABLES WITH READ LOCK; (Dentro del editor MySQL)
+
+	[IMAGEN FLUSH]
+
+Y ya podemos ejecutar la orden mysqldump, que hará una copia de la base de datos, incluyendo la creación de tablas, insección de datos y demás operaciones pertinentes para que la copia sea exacta en nuestra otra máquina. Obviamente para que sea más accesible, haremos dicha copia en el directorio raíz.
+
+Posteriormente copiamos dicho archivo en nuestro segundo servidor mediante el comando scp. En la siguiente imagen se muestra el resultado de la copia de la base de datos con las órdenes anteriores:
+
+[IMAGEN TRANSFERENCIA_BD]
+
+Ahora desplegaremos dicha base de datos en nuestro segundo servidor, pero antes de continuar, desbloquearemos las tablas que habiamos bloqueado antes para que el servidor principal pueda seguir trabajando. Para ello ejecutamos en MySQL:
+	
+	UNLOCK TABLES;
+
+Una vez hecho todo, pasamos a la segunda máquina y entramos en MySQL. A continuación creamos una base de datos vacía, la cuál será la zona de despliegue de la base de datos anterior, es decir, donde se crearan las tablas, insertarán datos, etc.
+
+Una vez que hemos creado la base de datos, salimos de MySQL y realizaremos la copia total de la base de datos del servidor principal en la base de datos vacía. Para ello ejecutamos la siguiente sentencia:
+	
+	mysql -u root -p ejemplodb < /root/ejemplodb.sql;
+
+Donde ejemplodb es la base de datos que hemos creado y ejemplobd.sql el archivo de sentencias copiado del servidor principal creado con mysqldump. En la siguiente imagenes tenemos todo el proceso realizado a modo de resumen sobre el ejemplo del guión:
+
+[IMAGEN COMPROBACION_COPIA]
+	
+	
+##Replicar una base de datos: Configuración maestro-esclavo
+Al igual que haciamos en la práctica dos, el hecho de hacer unas copias de seguridad a mano resulta algo improductivo, es por ello que una buena opción sería automatizar las tareas de copia. Pero en lugar de usar el demonio "crontab" usaremos uno propio de MySQL en una configuración maestro-esclavo.
+
+En primer lugar haremos la configuración del maestro, es decir, nuestro servidor principal. Para ello, editaremos el siguiente archivo:
+
+	/etc/mysql/my.cnf
+
+Comentamos el parámetro bind-adress. Indicamos donde almacenar el log de errores y establecemos el identificador de servidor, en nuestro caso 1.
+
+[IMAGEN BIND_ADDRESS]
+[IMAGEN LOG_ERROR_ID_SERVER]
+
+Para acabar reiniciamos el servicio:
+
+	/etc/init.d/mysql restart
+
+De igual modo configuramos el esclavo, es decir, nuestro servidor 2 de igual forma pero indicando en el identificador de servidor 2.
+
+
+Una vez configuradas las máquinas, pasamos de nuevo al servidor maestro y creamos un usuario, al cuál daremos permisos para que pueda replicar los datos.
+Entramos en MySQL y realizamos lo siguiente: 
+
+[IMAGEN CREACION_USER_ESCLAVO]
+
+Una vez creado el usuario pasamos a la máquina esclava, pero antes realizamos la siguiente sentencia:
+	
+	SHOW MASTER STATUS;
+
+Gracias a esta sentencia obtendremos unos datos que serán necesarios para la configuración en MySQL del esclavo.
+
+Por tanto, una vez en la máquina secundaria, entramos en MySQL y ejecutaremos la siguiente sentencia para proporcionarle al esclavo quien será su maestro:
+
+[IMAGEN change_master]
+
+
+Por último activamos el esclavo y desbloqueamos las tablas en el maestro para poder insertar datos. Ahora ya tendriamos un demonio que nos hará copias de nuestras bases de datos en nuestro servidor principal a nuestro servidor secundario. En caso de querer saber si está funcionando correctamente ejecutamos lo siguiente:
+
+	SHOW SLAVE STATUS\G;
+
+Y observamos si el valor de "Second_Behind_Master" es distinto de null. Si lo es, todo funciona correctamente y las copias se harán satisfactoriamente. En caso de que el valor sea null, el resto de variables indicarán cuál es el problema y como podemos solucionarlo.
+
+[IMAGEN SECOND_BEHIND]
+
+Naturalmente, haremos también una comprobación insertando datos en el servidor principal y observandolos en el esclavo:
+
+[IMAGEN PRUEBA_DEMONIO_SQL]
+
+
+En este caso hemos creado una tabla llamada "prueba" con un solo atributo, "numero" y hemos insertado algunas tuplas en la tabla ya creada "datos".
+
