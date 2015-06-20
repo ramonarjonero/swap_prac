@@ -1,0 +1,34 @@
+En primer lugar hemos descargado la versión 12.04.5 de Ubuntu Server. Hemos instalado dos máquinas virtuales con dicha imagen con VirtualBox.
+En el proceso de instalación hemos definido como servidor primario, "Ubuntu Server 1" y como usuario "jaespana" y para el servidor de respaldo "Ubuntu Server 2" 
+y como usuario "jaespania".
+
+Antes de continuar configuramos las máquinas virtuales de modo que en Configuración->Redes, en el menú "Conectado a:" seleccionamos "Adaptador puente" para que así
+se pueda establecer conexión entre ambas máquinas. 
+
+Una vez hecho esto, configuramos las IP de ambas máquinas, para ello vamos a etc/network/ y abrimos con un editor de texto plano el archivo "interfaces". Lo cambiamos
+y ponemos lo siguiente:
+
+
+Así la IP para la máquina principal será: 172.19.0.10
+
+Hacemos lo mismo para la máquina de respaldo, y así la IP es: 172.19.0.130
+(Ambas IPs han sido elegidas por nosotros, pueden ser las que quieran siempre y cuando el contenido del archivo "interfaces" tenga coherencia cada apartado con los demás,
+es decir, debemos de usar las máscara, gateway, broadcast, etc. de acuerdo a la IP que queramos poner)
+
+Una vez que hemos logrado todos estos pasos, nuestras máquinas están listas para conectarse entre sí. Para comprobar esto realizamos simplemente ping entre ambas máquinas o 
+la opción de leer un archivo con curl. 
+
+Si elegimos el segundo camino, en nuestra máquina principal, creamos un archivo hola.html con el siguiente contenido:
+<HTML>
+<BODY>
+Esto funciona :)
+</BODY>
+</HTML>
+
+Lo guardamos en el directorio /var/www/ y ahora en nuestra máquina de respaldo S2, ejecutamos la orden curl:
+
+curl http://172.19.0.10/hola.html
+
+y vemos que nos muestra el archivo: [Sacar captura curl]
+
+Con esto finalizamos esta primera práctica sobre preparativos de las máquinas virtuales.
